@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RepoLens — Real GitHub Repository Analysis</title>
+<meta name="description" content="Paste a GitHub repository URL and get a live analysis built entirely from the GitHub API — no demo data, no guessing.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><text y=%2213%22 font-size=%2214%22>🔎</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="splash-screen" class="splash" role="presentation">
+  <div class="splash-inner">
+    <span class="splash-mark" aria-hidden="true">&gt;_</span>
+    <span class="splash-name">RepoLens</span>
+    <span class="splash-bar" aria-hidden="true"><span class="splash-bar-fill"></span></span>
+  </div>
+  <span class="visually-hidden">Loading RepoLens</span>
+</div>
+
+<header class="site-header">
+  <div class="wrap">
+    <span class="brand">
+      <span class="brand-mark" aria-hidden="true">&gt;_</span>
+      <span class="brand-name">RepoLens</span>
+    </span>
+    <span class="brand-tag">live analysis, straight from the GitHub API</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero" aria-labelledby="hero-heading">
+    <h1 id="hero-heading">Point it at a repository. It only reports what GitHub returns.</h1>
+    <p class="hero-sub">No sample data, no placeholder charts. If the API can't answer, RepoLens says so.</p>
+
+    <form id="analyze-form" class="analyze-form" autocomplete="off">
+      <label for="repo-url" class="visually-hidden">GitHub repository URL</label>
+      <div class="input-row">
+        <span class="input-icon" aria-hidden="true">github.com/</span>
+        <input
+          type="text"
+          id="repo-url"
+          name="repo-url"
+          placeholder="owner/repository or full URL"
+          aria-describedby="url-hint"
+          required
+        >
+        <button type="submit" id="analyze-btn">
+          <span class="btn-label">Analyze</span>
+        </button>
+      </div>
+      <p id="url-hint" class="input-hint">e.g. <code>https://github.com/facebook/react</code></p>
+    </form>
+  </section>
+
+  <section id="loading-state" class="loading-state" hidden aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p id="loading-text">Contacting the GitHub API…</p>
+  </section>
+
+  <section id="error-state" class="error-state" hidden role="alert">
+    <h2 id="error-title">Something went wrong</h2>
+    <p id="error-message"></p>
+  </section>
+
+  <section id="results" class="results" hidden aria-live="polite">
+
+    <div class="result-banner">
+      <div class="banner-left">
+        <span class="data-source-badge" id="data-source-badge">Data source: GitHub API</span>
+        <span class="fetched-at" id="fetched-at"></span>
+      </div>
+      <a id="repo-link" class="repo-link" href="#" target="_blank" rel="noopener noreferrer"></a>
+    </div>
+
+    <section class="panel identity-panel" id="identity-panel" aria-labelledby="identity-heading">
+      <div class="identity-main">
+        <img id="owner-avatar" class="owner-avatar" alt="" width="56" height="56">
+        <div>
+          <h2 id="identity-heading"><span id="repo-owner"></span><span class="sep">/</span><span id="repo-name"></span></h2>
+          <p id="repo-description" class="repo-description"></p>
+          <div class="badge-row" id="badge-row"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel score-panel" id="score-panel" aria-labelledby="score-heading">
+      <div class="score-top">
+        <div class="score-dial" id="score-dial">
+          <span id="score-number">–</span><span class="score-max">/100</span>
+        </div>
+        <div class="score-meta">
+          <h3 id="score-heading" class="panel-heading">Repository score</h3>
+          <p id="score-grade" class="score-grade"></p>
+          <p id="score-coverage" class="score-coverage"></p>
+        </div>
+      </div>
+      <div id="score-breakdown" class="score-breakdown"></div>
+      <p class="score-disclaimer">Heuristic score calculated from the GitHub data on this page (documentation, activity, community traction, issue backlog, releases). It is not an official GitHub metric.</p>
+    </section>
+
+    <section class="panel stats-panel" aria-labelledby="stats-heading">
+      <h3 id="stats-heading" class="panel-heading">Repository statistics</h3>
+      <div class="stat-grid" id="stat-grid"></div>
+    </section>
+
+    <div class="panel-columns">
+      <section class="panel" aria-labelledby="lang-heading">
+        <h3 id="lang-heading" class="panel-heading">Language distribution</h3>
+        <div id="language-content"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="docs-heading">
+        <h3 id="docs-heading" class="panel-heading">Documentation indicators</h3>
+        <ul id="docs-list" class="docs-list"></ul>
+      </section>
+    </div>
+
+    <div class="panel-columns">
+      <section class="panel" aria-labelledby="health-heading">
+        <h3 id="health-heading" class="panel-heading">Repository health</h3>
+        <div id="health-content" class="health-content"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="contrib-heading">
+        <h3 id="contrib-heading" class="panel-heading">Top contributors</h3>
+        <div id="contributors-content"></div>
+      </section>
+    </div>
+
+    <section class="panel negatives-panel" aria-labelledby="negatives-heading">
+      <h3 id="negatives-heading" class="panel-heading">Negative points</h3>
+      <ul id="negatives-list" class="negatives-list"></ul>
+    </section>
+
+    <section class="panel" aria-labelledby="activity-heading">
+      <h3 id="activity-heading" class="panel-heading">Recent commit activity</h3>
+      <ol id="commits-list" class="commits-list"></ol>
+    </section>
+
+    <section class="panel" aria-labelledby="release-heading">
+      <h3 id="release-heading" class="panel-heading">Latest release</h3>
+      <div id="release-content"></div>
+    </section>
+
+    <p class="calc-note">Metrics marked <em>calculated</em> are derived mathematically from the raw GitHub API response above — never estimated or invented.</p>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>RepoLens reads only public data from the official GitHub REST API. No token, no server, no database.</p>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
